@@ -1,7 +1,5 @@
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
-#import <objc/message.h>
 
 static NSString *const kAntholifeCredit = @"bypass by Antholife";
 static NSString *const kAntholifeUnlocked = @"YouTube Plus unlocked — bypass by Antholife";
@@ -11,53 +9,26 @@ static BOOL YTLiteBundle(NSBundle *bundle) {
     return path.length > 0 && [path rangeOfString:@"YTLite.bundle"].location != NSNotFound;
 }
 
-static BOOL YTLiteKeyHasCredit(NSString *key) {
+static BOOL YTLiteAuthPrefsKey(NSString *key) {
     if (!key.length) return NO;
-    if ([key isEqualToString:@"BuildByAntholife"]) return YES;
-    if ([key hasPrefix:@"Welcome."]) return YES;
-    if ([key hasPrefix:@"Conflicts."]) return YES;
-    static NSSet *extra;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        extra = [NSSet setWithArray:@[
-            @"DonationReminder",
-            @"SupportDevelopmentDesc",
-            @"Contributors",
-            @"Credits",
-            @"DevContribution",
-            @"VisitGithubDesc",
-            @"RetryLogin",
-            @"LogOutMessage"
-        ]];
-    });
-    return [extra containsObject:key];
+    NSString *lower = key.lowercaseString;
+    NSArray *needles = @[
+        @"patreon", @"authorized", @"authorised", @"activated", @"loggedin",
+        @"login", @"subscription", @"member", @"entitled", @"skiplogin"
+    ];
+    for (NSString *needle in needles) {
+        if ([lower containsString:needle]) return YES;
+    }
+    return NO;
 }
 
-static NSString *YTLiteApplyCredit(NSString *key, NSString *text) {
-    if ([key isEqualToString:@"BuildByAntholife"])
-        return kAntholifeCredit;
-    if ([key isEqualToString:@"FeaturesNotActivated"])
-        return kAntholifeUnlocked;
-    if (!text.length)
-        return kAntholifeCredit;
-    if ([text rangeOfString:@"Antholife" options:NSCaseInsensitiveSearch].location != NSNotFound)
-        return text;
-    if ([key hasPrefix:@"Welcome."] && ([key hasSuffix:@"Desc"] || [key isEqualToString:@"Welcome.More"]))
-        return [NSString stringWithFormat:@"%@\n\n%@", text, kAntholifeCredit];
-    return [NSString stringWithFormat:@"%@ · %@", text, kAntholifeCredit];
-}
-
-static void YTLiteShowLaunchToast(void) {
-    Class toastClass = objc_getClass("YTToastResponderEvent");
-    if (!toastClass) return;
-
-    SEL factory = NSSelectorFromString(@"eventWithMessage:firstResponder:");
-    if (![toastClass respondsToSelector:factory]) return;
-
-    NSString *message = [NSString stringWithFormat:@"YouTube Plus · %@", kAntholifeCredit];
-    id event = ((id (*)(id, SEL, id, id))objc_msgSend)(toastClass, factory, message, nil);
-    if (event && [event respondsToSelector:@selector(send)])
-        ((void (*)(id, SEL))objc_msgSend)(event, @selector(send));
+static BOOL YTLiteShouldHookAuthClass(const char *name) {
+    if (!name || name[0] == '_') return NO;
+    if (strstr(name, "Patreon")) return YES;
+    if (strstr(name, "YTLite") && strstr(name, "Auth")) return YES;
+    if (strstr(name, "YTPlus") && strstr(name, "Auth")) return YES;
+    if (strstr(name, "YTL") && strstr(name, "Auth") && !strstr(name, "WebKit")) return YES;
+    return NO;
 }
 
 static BOOL YTLiteBypass_isAuthorized(id self, SEL _cmd) {
@@ -66,19 +37,64 @@ static BOOL YTLiteBypass_isAuthorized(id self, SEL _cmd) {
     return YES;
 }
 
-static void YTLiteBypass_install(void) {
-    unsigned int count = 0;
-    Class *classes = objc_copyClassList(&count);
-    if (!classes) return;
+static void YTLiteBypass_installAuthHooks(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        unsigned int count = 0;
+        Class *classes = objc_copyClassList(&count);
+        if (!classes) return;
 
-    SEL sel = @selector(isAuthorized);
-    for (unsigned int i = 0; i < count; i++) {
-        Method m = class_getInstanceMethod(classes[i], sel);
-        if (m) method_setImplementation(m, (IMP)YTLiteBypass_isAuthorized);
-    }
+        SEL sel = @selector(isAuthorized);
+        for (unsigned int i = 0; i < count; i++) {
+            const char *name = class_getName(classes[i]);
+            if (!YTLiteShouldHookAuthClass(name)) continue;
 
-    free(classes);
+            Method m = class_getInstanceMethod(classes[i], sel);
+            if (m) method_setImplementation(m, (IMP)YTLiteBypass_isAuthorized);
+        }
+
+        free(classes);
+    });
 }
+
+static BOOL YTLiteKeyHasCredit(NSString *key) {
+    if (!key.length) return NO;
+    if ([key isEqualToString:@"BuildByAntholife"]) return YES;
+    if ([key hasPrefix:@"Welcome."] && ([key hasSuffix:@"Desc"] || [key isEqualToString:@"Welcome.More"]))
+        return YES;
+    static NSSet *extra;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        extra = [NSSet setWithArray:@[@"DonationReminder", @"FeaturesNotActivated"]];
+    });
+    return [extra containsObject:key];
+}
+
+static NSString *YTLiteApplyCredit(NSString *key, NSString *text) {
+    if ([key isEqualToString:@"FeaturesNotActivated"])
+        return kAntholifeUnlocked;
+    if (!text.length)
+        return kAntholifeCredit;
+    if ([text rangeOfString:@"Antholife" options:NSCaseInsensitiveSearch].location != NSNotFound)
+        return text;
+    if ([key hasPrefix:@"Welcome."])
+        return [NSString stringWithFormat:@"%@\n\n%@", text, kAntholifeCredit];
+    return [NSString stringWithFormat:@"%@ · %@", text, kAntholifeCredit];
+}
+
+%hook YTLUserDefaults
+
+- (BOOL)boolForKey:(NSString *)key {
+    if (YTLiteAuthPrefsKey(key)) return YES;
+    return %orig;
+}
+
+- (NSInteger)integerForKey:(NSString *)key {
+    if (YTLiteAuthPrefsKey(key)) return 1;
+    return %orig;
+}
+
+%end
 
 %hook NSBundle
 
@@ -88,10 +104,8 @@ static void YTLiteBypass_install(void) {
 
     if ([key isEqualToString:@"BuildByAntholife"])
         return kAntholifeCredit;
-
     if ([key isEqualToString:@"FeaturesNotActivated"])
         return kAntholifeUnlocked;
-
     if ([key isEqualToString:@"Log-inViaPatreon"])
         return kAntholifeCredit;
 
@@ -105,11 +119,7 @@ static void YTLiteBypass_install(void) {
 %end
 
 %ctor {
-    YTLiteBypass_install();
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        YTLiteBypass_install();
-    });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(4 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        YTLiteShowLaunchToast();
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        YTLiteBypass_installAuthHooks();
     });
 }
