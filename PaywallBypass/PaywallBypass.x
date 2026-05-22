@@ -280,7 +280,7 @@ static id YB_MakeSettingsItem(NSString *title, NSString *desc, NSString *url) {
     if (![itemClass respondsToSelector:factory]) return nil;
 
     NSString *linkURL = [url copy];
-    id (^selectBlock)(id, NSUInteger) = ^BOOL(id cell, NSUInteger arg1) {
+    BOOL (^selectBlock)(id, NSUInteger) = ^BOOL(id cell, NSUInteger arg1) {
         (void)cell;
         (void)arg1;
         if (!linkURL.length) return YES;
