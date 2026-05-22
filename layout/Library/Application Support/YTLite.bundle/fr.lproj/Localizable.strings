@@ -1,5 +1,8 @@
 /* Antholife build */
 "BuildByAntholife" = "bypass par Antholife";
+"BypassSection" = "Bypass";
+"AntholifeContributor" = "Antholife";
+"AntholifeContributorDesc" = "bypass par Antholife";
 
 /* Patreon section */
 "SkipLogInAlert" = "Suppress login reminder";
