@@ -1,5 +1,7 @@
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#import <objc/message.h>
 
 static NSString *const kAntholifeCredit = @"bypass by Antholife";
 static NSString *const kAntholifeUnlocked = @"YouTube Plus unlocked — bypass by Antholife";
@@ -270,36 +272,43 @@ static BOOL YB_RowsLookLikeDeveloper(NSArray *rows) {
     return NO;
 }
 
-static id YB_MakeLinkItem(NSString *title, NSString *desc, NSString *url) {
-    Class itemClass = objc_getClass("YTSettingsSectionItem");
-    Class uiUtils = objc_getClass("YTUIUtils");
-    if (!itemClass || !uiUtils) return nil;
-
-    return [itemClass itemWithTitle:title
-        titleDescription:desc
-        accessibilityIdentifier:@"YTLiteSectionItem"
-        detailTextBlock:nil
-        selectBlock:^BOOL(id cell, NSUInteger arg1) {
-            (void)cell;
-            (void)arg1;
-            NSURL *link = [NSURL URLWithString:url];
-            return link ? [uiUtils openURL:link] : NO;
-        }];
-}
-
-static id YB_MakeHeaderItem(NSString *title, NSString *desc) {
+static id YB_MakeSettingsItem(NSString *title, NSString *desc, NSString *url) {
     Class itemClass = objc_getClass("YTSettingsSectionItem");
     if (!itemClass) return nil;
 
-    return [itemClass itemWithTitle:title
-        titleDescription:desc
-        accessibilityIdentifier:@"YTLiteSectionItem"
-        detailTextBlock:nil
-        selectBlock:^BOOL(id cell, NSUInteger arg1) {
-            (void)cell;
-            (void)arg1;
-            return YES;
-        }];
+    SEL factory = @selector(itemWithTitle:titleDescription:accessibilityIdentifier:detailTextBlock:selectBlock:);
+    if (![itemClass respondsToSelector:factory]) return nil;
+
+    NSString *linkURL = [url copy];
+    id (^selectBlock)(id, NSUInteger) = ^BOOL(id cell, NSUInteger arg1) {
+        (void)cell;
+        (void)arg1;
+        if (!linkURL.length) return YES;
+
+        Class uiUtils = objc_getClass("YTUIUtils");
+        NSURL *link = [NSURL URLWithString:linkURL];
+        if (!uiUtils || !link || ![uiUtils respondsToSelector:@selector(openURL:)]) return NO;
+
+        return ((BOOL (*)(id, SEL, NSURL *))objc_msgSend)(uiUtils, @selector(openURL:), link);
+    };
+
+    return ((id (*)(id, SEL, NSString *, NSString *, NSString *, id, id))objc_msgSend)(
+        itemClass,
+        factory,
+        title,
+        desc,
+        @"YTLiteSectionItem",
+        nil,
+        selectBlock
+    );
+}
+
+static id YB_MakeLinkItem(NSString *title, NSString *desc, NSString *url) {
+    return YB_MakeSettingsItem(title, desc, url);
+}
+
+static id YB_MakeHeaderItem(NSString *title, NSString *desc) {
+    return YB_MakeSettingsItem(title, desc, nil);
 }
 
 static NSArray *YB_InjectContributorsRows(NSArray *rows) {
