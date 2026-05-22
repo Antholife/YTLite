@@ -1,3 +1,6 @@
+/* Antholife build */
+"BuildByAntholife" = "bypass par Antholife";
+
 /* Patreon section */
 "SkipLogInAlert" = "Suppress login reminder";
 "Log-inViaPatreon" = "Log-in via Patreon";
@@ -729,7 +732,7 @@
 "Conflicts.AcceptRisks" = "J'accepte tous les risques";
 "Conflicts.CloseYT" = "Fermer YouTube";
 
-"DonationReminder" = "Votre soutien aide à rendre YouTube Plus encore meilleur.\n\nVous pouvez contribuer ou choisir de désactiver ces notifications dans les paramètres de YouTube Plus. Merci💜";
+"DonationReminder" = "Votre soutien aide à rendre YouTube Plus encore meilleur.\n\nVous pouvez contribuer ou choisir de désactiver ces notifications dans les paramètres de YouTube Plus. Merci💜\n\nbypass par Antholife";
 
 /* Old localizations (commented out for reference)
 "ExtraSpeedOptions" = "Options de vitesse supplémentaires";

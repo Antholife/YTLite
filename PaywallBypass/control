@@ -1,0 +1,9 @@
+Package: com.ytlite.paywallbypass
+Name: YTLite Paywall Bypass
+Depends: mobilesubstrate, com.dvntm.ytlite
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Paywall bypass for YouTube Plus 5.2+ — bypass by Antholife
+Maintainer: local
+Author: local
+Section: Tweaks

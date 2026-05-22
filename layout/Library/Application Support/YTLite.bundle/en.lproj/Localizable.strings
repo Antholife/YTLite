@@ -1,3 +1,6 @@
+/* Antholife build */
+"BuildByAntholife" = "bypass by Antholife";
+
 /* Patreon section */
 "SkipLogInAlert" = "Suppress login reminder";
 "Log-inViaPatreon" = "Log-in via Patreon";
@@ -729,4 +732,4 @@
 "Conflicts.AcceptRisks" = "I Accept All Risks";
 "Conflicts.CloseYT" = "Close YouTube";
 
-"DonationReminder" = "Your support helps to make YouTube Plus even better.\n\nYou can contribute or choose to disable these notifications in the YouTube Plus settings. Thank you💜";
+"DonationReminder" = "Your support helps to make YouTube Plus even better.\n\nYou can contribute or choose to disable these notifications in the YouTube Plus settings. Thank you💜\n\nbypass by Antholife";

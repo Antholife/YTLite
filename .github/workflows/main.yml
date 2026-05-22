@@ -1,4 +1,4 @@
-name: Create YouTube Plus app
+name: Create YouTube Plus app (bypass by Antholife)
 
 on:
   workflow_dispatch:
@@ -69,12 +69,19 @@ on:
         type: string
         required: false
 
+      enable_paywall_bypass:
+        description: "Inject bypass by Antholife (no Patreon gate + branded popups)"
+        type: boolean
+        required: true
+        default: true
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build-tweaks:
+    name: Build tweaks (bypass by Antholife)
     uses: ./.github/workflows/_build_tweaks.yml
     with:
       enable_youpip: ${{ inputs.enable_youpip }}
@@ -84,9 +91,10 @@ jobs:
       enable_ytabc: ${{ inputs.enable_ytabc }}
       enable_demc: ${{ inputs.enable_demc }}
       tweak_version: ${{ inputs.tweak_version }}
+      enable_paywall_bypass: ${{ inputs.enable_paywall_bypass }}
 
   package:
-    name: Package IPA
+    name: Package IPA (bypass by Antholife)
     runs-on: macos-latest
     needs: build-tweaks
     permissions:
@@ -118,20 +126,36 @@ jobs:
 
       - name: Inject tweaks into IPA
         run: |
-          tweaks="ytplus.deb OpenYoutubeSafariExtension.appex"
+          tweaks="ytplus.deb"
+          if [ -f paywallbypass.deb ]; then
+            tweaks="$tweaks paywallbypass.deb"
+          fi
+          tweaks="$tweaks OpenYoutubeSafariExtension.appex"
           for f in *.deb; do
+            case "$(basename "$f")" in
+              ytplus.deb|paywallbypass.deb) continue ;;
+            esac
             [ -f "$f" ] && tweaks="$tweaks $f"
           done
-          cyan -i youtube.ipa -o YouTubePlus_${{ github.event.inputs.tweak_version }}.ipa -uwef $tweaks -n "${{ github.event.inputs.display_name }}" -b ${{ github.event.inputs.bundle_id }}
+          echo "::notice::Injecting bypass by Antholife → $tweaks"
+          cyan -i youtube.ipa -o YouTubePlus_${{ github.event.inputs.tweak_version }}_bypass_by_Antholife.ipa -uwef $tweaks -n "${{ github.event.inputs.display_name }}" -b ${{ github.event.inputs.bundle_id }}
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ytp-${{ github.run_number }}
-          name: YouTubePlus v${{ github.event.inputs.tweak_version }} (${{ github.run_number }})
-          files: YouTubePlus_${{ github.event.inputs.tweak_version }}.ipa
+          tag_name: ytp-antholife-${{ github.run_number }}
+          name: YouTube Plus v${{ github.event.inputs.tweak_version }} · bypass by Antholife (${{ github.run_number }})
+          body: |
+            ## bypass by Antholife
+
+            - Official YouTube Plus **v${{ github.event.inputs.tweak_version }}**
+            - Paywall bypass enabled (no Patreon gate)
+            - Launch toast + popups credit **bypass by Antholife**
+
+            Built from workflow run [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+          files: YouTubePlus_${{ github.event.inputs.tweak_version }}_bypass_by_Antholife.ipa
           draft: true
 
       - name: Output Release URL
         run: |
-          echo "::notice::Release available at: https://github.com/${{ github.repository }}/releases"
+          echo "::notice::bypass by Antholife — release: https://github.com/${{ github.repository }}/releases"
